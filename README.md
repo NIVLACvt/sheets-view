@@ -1,1 +1,1 @@
-# go to https://nivlacvt.github.io/sheets-view/ to view your site
+go to https://nivlacvt.github.io/sheets-view/ to view your site

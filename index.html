@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Google Sheets Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f1f3f4;
+      color: #202124;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: #1a73e8;
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .topbar svg { flex-shrink: 0; }
+    .topbar-title { font-size: 18px; font-weight: 500; }
+    .topbar-sub { font-size: 12px; opacity: 0.8; margin-top: 1px; }
+
+    /* ── Main layout ── */
+    .main { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+
+    /* ── Config card ── */
+    .config-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+    .config-card h2 {
+      font-size: 13px;
+      font-weight: 500;
+      color: #5f6368;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .config-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .config-group { display: flex; flex-direction: column; gap: 4px; }
+    .config-group label { font-size: 12px; color: #5f6368; }
+    .config-group input,
+    .config-group select {
+      font-size: 13px;
+      padding: 7px 10px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background: #fff;
+      color: #202124;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .config-group input:focus,
+    .config-group select:focus { border-color: #1a73e8; }
+    .config-group.grow { flex: 1; min-width: 220px; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 7px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary { background: #1a73e8; color: #fff; }
+    .btn-primary:hover { background: #1557b0; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+    .btn-secondary { background: #fff; color: #1a73e8; border: 1px solid #dadce0; }
+    .btn-secondary:hover { background: #f1f3f4; }
+    .btn-row { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
+
+    /* ── Status bar ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #5f6368;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ea4335;
+      flex-shrink: 0;
+    }
+    .dot.live { background: #34a853; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+    .status-bar .spacer { flex: 1; }
+    .row-count { font-size: 12px; color: #5f6368; }
+
+    /* ── Search ── */
+    .search-wrap { position: relative; margin-bottom: 12px; }
+    .search-wrap input {
+      width: 100%;
+      padding: 8px 12px 8px 36px;
+      font-size: 13px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background: #fff;
+      color: #202124;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .search-wrap input:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+    .search-wrap .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9aa0a6;
+      pointer-events: none;
+    }
+
+    /* ── Messages ── */
+    .error-msg {
+      background: #fce8e6;
+      color: #c5221f;
+      border: 1px solid #f5c6c6;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .loading-msg {
+      color: #5f6368;
+      font-size: 13px;
+      padding: 20px 0;
+      text-align: center;
+      display: none;
+    }
+    .empty-msg {
+      color: #9aa0a6;
+      font-size: 13px;
+      padding: 24px;
+      text-align: center;
+      display: none;
+    }
+
+    /* ── Table ── */
+    .table-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      overflow: hidden;
+      display: none;
+    }
+    .table-scroll { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead tr { background: #1a73e8; }
+    thead th {
+      color: #fff;
+      font-weight: 500;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 10px 14px;
+      text-align: left;
+      white-space: nowrap;
+      border-right: 1px solid rgba(255,255,255,0.15);
+      cursor: pointer;
+      user-select: none;
+    }
+    thead th:last-child { border-right: none; }
+    thead th:hover { background: #1557b0; }
+    thead th .sort-arrow { margin-left: 4px; opacity: 0.6; font-size: 10px; }
+    tbody tr { border-bottom: 1px solid #f1f3f4; transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f8f9fa; }
+    tbody td { padding: 8px 14px; color: #202124; border-right: 1px solid #f1f3f4; }
+    tbody td:last-child { border-right: none; }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #9aa0a6;
+      margin-top: 20px;
+      padding-bottom: 24px;
+    }
+    .footer a { color: #1a73e8; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <!-- Google Sheets icon -->
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="1" width="14" height="18" rx="1" fill="#fff" opacity="0.9"/>
+    <rect x="7" y="7" width="6" height="1.5" rx="0.5" fill="#1a73e8"/>
+    <rect x="7" y="10" width="6" height="1.5" rx="0.5" fill="#1a73e8"/>
+    <rect x="7" y="13" width="4" height="1.5" rx="0.5" fill="#1a73e8"/>
+    <polygon points="14,1 17,4 14,4" fill="#b3d4f5"/>
+  </svg>
+  <div>
+    <div class="topbar-title">Live Sheets Dashboard</div>
+    <div class="topbar-sub">Auto-refreshing Google Sheets viewer</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Config -->
+  <div class="config-card">
+    <h2>Data Source</h2>
+    <div class="config-row">
+      <div class="config-group grow">
+        <label>Sheet ID or full URL</label>
+        <input type="text" id="sheet-id"
+          value="1BfJ_Q1QjKta_wrnKiLmg8n1OnzTOfdzXAUmSPXsHjpU"
+          placeholder="Paste Sheet ID or full Google Sheets URL" />
+      </div>
+      <div class="config-group">
+        <label>Tab name</label>
+        <input type="text" id="sheet-tab" value="Sheet1" placeholder="Sheet1" style="width:110px" />
+      </div>
+      <div class="config-group">
+        <label>Auto-refresh</label>
+        <select id="refresh-interval">
+          <option value="10000">Every 10s</option>
+          <option value="30000" selected>Every 30s</option>
+          <option value="60000">Every 1 min</option>
+          <option value="300000">Every 5 min</option>
+          <option value="0">Manual only</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="loadSheet()">Load</button>
+        <button class="btn btn-secondary" onclick="loadSheet()">↻ Refresh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" id="search" placeholder="Search all columns..." oninput="filterTable()" />
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <span class="dot" id="live-dot"></span>
+    <span id="status-text">Not loaded — press Load to fetch data</span>
+    <span class="spacer"></span>
+    <span class="row-count" id="row-count"></span>
+  </div>
+
+  <!-- Messages -->
+  <div class="error-msg" id="error-msg"></div>
+  <div class="loading-msg" id="loading-msg">⏳ Fetching sheet data...</div>
+  <div class="empty-msg" id="empty-msg">No rows match your search.</div>
+
+  <!-- Table -->
+  <div class="table-card" id="table-card">
+    <div class="table-scroll">
+      <table id="data-table">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    Data via <a href="https://docs.google.com/spreadsheets" target="_blank">Google Sheets</a> public CSV export ·
+    Sheet must be set to <strong>Anyone with the link → Viewer</strong>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  let allRows = [];
+  let headers = [];
+  let refreshTimer = null;
+  let sortCol = -1;
+  let sortAsc = true;
+
+  // ── Helpers ────────────────────────────────────────────
+  function extractId(val) {
+    val = val.trim();
+    const m = val.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if (m) return m[1];
+    if (/^[a-zA-Z0-9_-]{20,}$/.test(val)) return val;
+    return null;
+  }
+
+  function parseCSV(csv) {
+    const rows = [];
+    let cur = '', inQ = false, row = [];
+    for (let i = 0; i < csv.length; i++) {
+      const c = csv[i];
+      if (c === '"') { inQ = !inQ; continue; }
+      if (c === ',' && !inQ) { row.push(cur); cur = ''; continue; }
+      if ((c === '\n' || c === '\r') && !inQ) {
+        if (c === '\r' && csv[i+1] === '\n') i++;
+        row.push(cur); cur = '';
+        if (row.some(x => x !== '')) rows.push(row);
+        row = []; continue;
+      }
+      cur += c;
+    }
+    if (cur || row.length) { row.push(cur); if (row.some(x => x !== '')) rows.push(row); }
+    return rows;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Load ───────────────────────────────────────────────
+  async function loadSheet() {
+    const rawId = document.getElementById('sheet-id').value;
+    const id = extractId(rawId);
+    const tab = encodeURIComponent(document.getElementById('sheet-tab').value || 'Sheet1');
+
+    if (!id) { showError('Invalid Sheet ID or URL. Paste the full Google Sheets URL or just the ID.'); return; }
+
+    setStatus('fetching');
+    hideError();
+
+    const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${tab}`;
+
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`Server returned HTTP ${r.status}. Check the Sheet ID and tab name.`);
+      const csv = await r.text();
+      if (csv.includes('accounts.google') || csv.toLowerCase().includes('sign in')) {
+        throw new Error('Sheet is private. Go to Share → General access → Anyone with the link → Viewer.');
+      }
+      if (csv.trim().length < 3) throw new Error('Sheet appears empty or tab name is wrong.');
+
+      const rows = parseCSV(csv);
+      if (rows.length === 0) throw new Error('No data found in this sheet/tab.');
+
+      headers = rows[0];
+      allRows = rows.slice(1);
+      sortCol = -1;
+
+      renderTable();
+      setStatus('live');
+
+      clearInterval(refreshTimer);
+      const interval = parseInt(document.getElementById('refresh-interval').value);
+      if (interval > 0) refreshTimer = setInterval(loadSheet, interval);
+
+    } catch(e) {
+      setStatus('error');
+      showError(e.message);
+    }
+  }
+
+  // ── Render ─────────────────────────────────────────────
+  function renderTable() {
+    const search = document.getElementById('search').value.toLowerCase();
+    let rows = search
+      ? allRows.filter(r => r.some(c => c.toLowerCase().includes(search)))
+      : [...allRows];
+
+    if (sortCol >= 0) {
+      rows.sort((a, b) => {
+        const av = a[sortCol] || '', bv = b[sortCol] || '';
+        const an = parseFloat(av), bn = parseFloat(bv);
+        const cmp = (!isNaN(an) && !isNaN(bn)) ? an - bn : av.localeCompare(bv);
+        return sortAsc ? cmp : -cmp;
+      });
+    }
+
+    // Headers
+    document.getElementById('thead').innerHTML = '<tr>' +
+      headers.map((h, i) => {
+        const arrow = sortCol === i ? (sortAsc ? ' ▲' : ' ▼') : ' ⇅';
+        return `<th onclick="sortBy(${i})"><span>${escapeHtml(h)}</span><span class="sort-arrow">${arrow}</span></th>`;
+      }).join('') + '</tr>';
+
+    // Body
+    const empty = document.getElementById('empty-msg');
+    if (rows.length === 0) {
+      document.getElementById('tbody').innerHTML = '';
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      document.getElementById('tbody').innerHTML = rows.map(row =>
+        '<tr>' + headers.map((_, i) => `<td>${escapeHtml(row[i] !== undefined ? row[i] : '')}</td>`).join('') + '</tr>'
+      ).join('');
+    }
+
+    document.getElementById('row-count').textContent =
+      search ? `${rows.length} of ${allRows.length} rows` : `${allRows.length} rows · ${headers.length} cols`;
+    document.getElementById('table-card').style.display = 'block';
+  }
+
+  function filterTable() { if (allRows.length) renderTable(); }
+
+  function sortBy(col) {
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+    renderTable();
+  }
+
+  // ── Status helpers ─────────────────────────────────────
+  function setStatus(state) {
+    const dot = document.getElementById('live-dot');
+    const txt = document.getElementById('status-text');
+    const loading = document.getElementById('loading-msg');
+    if (state === 'fetching') {
+      dot.className = 'dot';
+      txt.textContent = 'Fetching...';
+      loading.style.display = 'block';
+    } else if (state === 'live') {
+      dot.className = 'dot live';
+      txt.textContent = `Live · Updated ${new Date().toLocaleTimeString()}`;
+      loading.style.display = 'none';
+    } else {
+      dot.className = 'dot';
+      txt.textContent = 'Error loading data';
+      loading.style.display = 'none';
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = '⚠ ' + msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('error-msg').style.display = 'none';
+  }
+</script>
+</body>
+</html>

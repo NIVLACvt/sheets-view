@@ -14,20 +14,26 @@
       min-height: 100vh;
       padding: 0;
     }
+    #sheet-tab:hover {
+      transform: scale(1.1);
+    }
 
     /* ── Top bar ── */
     .topbar {
-      background: #1a73e8;
-      color: #fff;
+      background: #0011ff;
+      color: #00ff9f;
       padding: 12px 24px;
       display: flex;
       align-items: center;
       gap: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
-    .topbar svg { flex-shrink: 0; }
+    .topbar svg { 
+      flex-shrink: 0;
+      color: #00ff9f;
+    }
     .topbar-title { font-size: 18px; font-weight: 500; }
-    .topbar-sub { font-size: 12px; opacity: 0.8; margin-top: 1px; }
+    .topbar-sub { font-size: 12px; opacity: 0.8; margin-top: 1px; color: #00ff9f; }
 
     /* ── Main layout ── */
     .main { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
@@ -43,7 +49,7 @@
     .config-card h2 {
       font-size: 13px;
       font-weight: 500;
-      color: #5f6368;
+      color: #0011ff;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 12px;
@@ -55,17 +61,26 @@
       align-items: flex-end;
     }
     .config-group { display: flex; flex-direction: column; gap: 4px; }
-    .config-group label { font-size: 12px; color: #5f6368; }
+    .config-group label { font-size: 12px; color: #0011ff; }
     .config-group input,
     .config-group select {
       font-size: 13px;
       padding: 7px 10px;
-      border: 1px solid #dadce0;
+      border: 3px solid #0011ff;
       border-radius: 4px;
       background: #fff;
       color: #202124;
       outline: none;
       transition: border-color 0.15s;
+    }
+    .config-group select:hover {
+      transform: scale(1.1);
+    }
+    .config-group.grow input:hover {
+      transform: scale(1.02);
+    }
+    .search-wrap input:hover {
+      transform: scale(1.02);
     }
     .config-group input:focus,
     .config-group select:focus { border-color: #1a73e8; }
@@ -82,9 +97,9 @@
       transition: background 0.15s, box-shadow 0.15s;
     }
     .btn-primary { background: #1a73e8; color: #fff; }
-    .btn-primary:hover { background: #1557b0; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
-    .btn-secondary { background: #fff; color: #1a73e8; border: 1px solid #dadce0; }
-    .btn-secondary:hover { background: #f1f3f4; }
+    .btn-primary:hover { background: #1557b0; box-shadow: 0 1px 4px rgba(0,0,0,0.2); transform: scale(1.15); }
+    .btn-secondary { background: #fff; color: #1a73e8; border: 3px solid #0011ff;; }
+    .btn-secondary:hover { background: #f1f3f4; transform: scale(1.1); }
     .btn-row { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
 
     /* ── Status bar ── */
@@ -114,7 +129,7 @@
       width: 100%;
       padding: 8px 12px 8px 36px;
       font-size: 13px;
-      border: 1px solid #dadce0;
+      border: 3px solid #0011ff;
       border-radius: 4px;
       background: #fff;
       color: #202124;
@@ -231,12 +246,12 @@
       <div class="config-group grow">
         <label>Sheet ID or full URL</label>
         <input type="text" id="sheet-id"
-          value="1BfJ_Q1QjKta_wrnKiLmg8n1OnzTOfdzXAUmSPXsHjpU"
+          value=""
           placeholder="Paste Sheet ID or full Google Sheets URL" />
       </div>
       <div class="config-group">
         <label>Tab name</label>
-        <input type="text" id="sheet-tab" value="Sheet1" placeholder="Sheet1" style="width:110px" />
+        <input type="text" id="sheet-tab" value="" placeholder="Sheet1" style="width:110px" />
       </div>
       <div class="config-group">
         <label>Auto-refresh</label>
